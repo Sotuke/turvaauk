@@ -24,14 +24,14 @@ In project folder, run command:
 `docker-compose up --build -d`
 
 ### Manually
-Build the project
+Build the project  
 `./gradlew clean build`
 
 Run the project (against an existing Postgres database. DB credentials have to be configured in application.properties file)  
 `./gradlew bootRun`
 
-Run the project (against a H2 in-memory database)
+Run the project (against a H2 in-memory database)  
 `./gradlew -Dspring.profiles.active=dev bootRun`
 
-The application can be accessed at:
+The application can be accessed at:  
 `http://localhost:8000`
