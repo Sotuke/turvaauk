@@ -40,7 +40,7 @@ Run the project (against an existing Postgres database. DB credentials have to b
 `./gradlew bootRun`
 
 Run the project (against a H2 in-memory database)  
-`./gradlew -Dspring.profiles.active=dev bootRun`
+`./gradlew "-Dspring.profiles.active=dev" bootRun`
 
 The application can be accessed at:  
 `http://localhost:8000`
