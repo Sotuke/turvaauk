@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload & List Files</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        input, button {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 1rem;
+            color: #c0392b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        th[data-column] {
+            cursor: pointer;
+        }
+
+        th[data-column]::after {
+            content: '';
+            margin-left: 0.25em;
+        }
+        th.asc::after {
+            content: '▲';
+        }
+        th.desc::after {
+            content: '▼';
+        }
+
+        .actions button {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+
+        #welcome {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        #logout-btn {
+            display: inline-block;
+            width: auto;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="login-view">
+    <h1>Login</h1>
+    <form id="login-form">
+        <input id="login-username" name="username" placeholder="Username" required type="text">
+        <input id="login-password" name="password" placeholder="Password" required type="password">
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="#" id="show-register">Register here</a></p>
+    <div id="status"></div>
+</div>
+
+<div class="container" id="register-view" style="display:none;">
+    <h1>Register</h1>
+    <form id="register-form">
+        <input id="reg-username" name="username" placeholder="Username" required type="text">
+        <input id="reg-password" name="password" placeholder="Password" required type="password">
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="#" id="show-login">Login here</a></p>
+    <div id="status-register"></div>
+</div>
+
+<div class="container" id="files-view" style="display:none;">
+    <div class="files-header">
+        <p id="welcome"></p>
+        <button id="logout-btn">Logout</button>
+    </div>
+    <h1>Upload a File</h1>
+    <form enctype="multipart/form-data" id="upload-form">
+        <input id="fileInput" name="file" required type="file">
+        <button type="submit">Upload</button>
+    </form>
+    <div id="status-upload"></div>
+
+    <hr>
+
+    <h1>Available Files</h1>
+    <table id="files-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th data-column="name">Name</th>
+            <th>MIME Type</th>
+            <th data-column="size">Size (bytes)</th>
+            <th data-column="uploadedAt">Uploaded At</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    const BASE_URL = 'http://localhost:8000';
+    let filesTableInitialized = false;
+
+    function showView(id) {
+        ['login-view', 'register-view', 'files-view'].forEach(v => {
+            document.getElementById(v).style.display = v === id ? 'block' : 'none';
+        });
+        clearStatus();
+    }
+
+    function clearStatus() {
+        ['status', 'status-register', 'status-upload'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '';
+        });
+    }
+
+    document.getElementById('show-register').addEventListener('click', e => {
+        e.preventDefault();
+        showView('register-view');
+    });
+    document.getElementById('show-login').addEventListener('click', e => {
+        e.preventDefault();
+        showView('login-view');
+    });
+    document.getElementById('register-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        try {
+            const res = await fetch(BASE_URL + '/api/users/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, password: password})
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || res.statusText);
+            }
+            showView('login-view');
+        } catch (err) {
+            document.getElementById(
+                'status-register'
+            ).innerHTML = 'Register error: ' + err.message;
+        }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        try {
+            const res = await fetch(BASE_URL + '/api/users/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, password: password}),
+                credentials: 'include'
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                document.getElementById('status').textContent =
+                    'Login error: ' + errorText;
+                return;
+            }
+            await initApp();
+            showView('files-view');
+        } catch (err) {
+            document.getElementById('status').textContent =
+                'Unexpected error: ' + err.message;
+        }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        document.cookie = 'SESSIONID=; Max-Age=0; path=/';
+        showView('login-view');
+    });
+
+    async function fetchCurrentUser() {
+        try {
+            const res = await fetch(BASE_URL + '/api/users/me', {
+                credentials: 'include'
+            });
+            if (!res.ok) return null;
+            return await res.text();
+        } catch (err) {
+            console.warn('Could not fetch current user:', err);
+            return null;
+        }
+    }
+
+    async function initApp() {
+        const user = await fetchCurrentUser();
+        if (user) {
+            document.getElementById('welcome').textContent =
+                `Welcome, ${user}!`;
+        }
+        initFileUpload();
+        if (!filesTableInitialized) {
+            initFilesTable();
+            filesTableInitialized = true;
+        } else {
+            loadFilesList();
+        }
+    }
+
+    const sortState = {column: 'uploadedAt', direction: 'ASC'};
+    const columnMap = {name: 'name', size: 'size', uploadedAt: 'uploaded_at'};
+
+    async function uploadFile(event) {
+        event.preventDefault();
+
+        const input = document.getElementById('fileInput');
+        if (!input.files.length) {
+            alert('Please select a file first.');
+            return;
+        }
+
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const status = document.getElementById('status-upload');
+        status.textContent = 'Uploading…';
+
+        try {
+            const response = await fetch(BASE_URL + '/api/files/upload', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            const text = await response.text();
+
+            if (!response.ok) {
+                if (response.status === 413) {
+                    throw new Error('Upload failed: File is too large. Maximum allowed size is 1MB.');
+                }
+                throw new Error('Upload failed: ' + text);
+            }
+
+            status.textContent = 'Upload successful!';
+            loadFilesList();
+        } catch (err) {
+            status.textContent = 'Error: ' + err.message;
+        }
+    }
+
+    function initFileUpload() {
+        document.getElementById('upload-form').addEventListener('submit', uploadFile);
+    }
+
+    function deleteFile(id) {
+        if (!confirm('Are you sure you want to delete file?')) return;
+        fetch(BASE_URL + '/api/files/' + id, {
+            method: 'DELETE',
+            credentials: 'include'})
+            .then(response => {
+                if (!response.ok) throw new Error('Delete failed: ' + response.statusText);
+                return response.text();
+            })
+            .then(() => {
+                loadFilesList();
+            })
+            .catch(err => {
+                alert('Error deleting file: ' + err.message);
+                console.error(err);
+            });
+    }
+
+    function downloadFile(id) {
+        window.location.href = BASE_URL + '/api/files/' + id + '/download';
+    }
+
+    function initFilesTable() {
+        document.querySelectorAll('#files-table th[data-column]').forEach(th => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', () => {
+                const clicked = th.dataset.column;
+                if (!columnMap[clicked]) return;
+                if (sortState.column === clicked) {
+                    sortState.direction = sortState.direction === 'ASC' ? 'DESC' : 'ASC';
+                } else {
+                    sortState.column = clicked;
+                    sortState.direction = 'ASC';
+                }
+                updateSortIndicators();
+                loadFilesList();
+            });
+        });
+        updateSortIndicators();
+        loadFilesList();
+    }
+
+    function updateSortIndicators() {
+        document
+            .querySelectorAll('#files-table th[data-column]')
+            .forEach(th => th.classList.remove('asc','desc'));
+
+        const activeTh = document.querySelector(
+            `#files-table th[data-column="${sortState.column}"]`
+        );
+        if (activeTh) {
+            activeTh.classList.add(sortState.direction === 'ASC' ? 'asc' : 'desc');
+        }
+    }
+
+    function loadFilesList() {
+        const url = new URL(BASE_URL + '/api/files');
+        url.searchParams.set('orderBy', columnMap[sortState.column]);
+        url.searchParams.set('direction', sortState.direction);
+        fetch(url.toString(), {credentials: 'include'})
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch files: ' + response.statusText);
+                return response.json();
+            })
+            .then(renderFilesTable)
+            .catch(showFilesError);
+    }
+
+    function renderFilesTable(files) {
+        const tbody = document.querySelector('#files-table tbody');
+        tbody.innerHTML = '';
+        files.forEach(file => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${file.id}</td>
+          <td>${file.name}</td>
+          <td>${file.mimeType}</td>
+          <td>${file.size}</td>
+          <td>${new Date(file.uploadedAt).toLocaleString()}</td>
+          <td>
+            <button class="delete-btn" onclick="deleteFile(${file.id})">Delete</button>
+            <button class="download-btn" onclick="downloadFile(${file.id})">Download</button>
+          </td>        
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showFilesError(err) {
+        const tbody = document.querySelector('#files-table tbody');
+        tbody.innerHTML = `
+        <tr>
+          <td colspan="6">Error loading files: ${err.message}</td>
+        </tr>
+      `;
+        console.error(err);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.cookie.includes('SESSIONID=')) {
+            initApp();
+            showView('files-view');
+        } else {
+            showView('login-view');
+        }
+    });
+</script>
+</body>
+</html>

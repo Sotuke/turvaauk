@@ -1,0 +1,27 @@
+services:
+  database:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: turvaaukUser
+      POSTGRES_PASSWORD: turvaaukPass
+      POSTGRES_DB: turvaauk_db
+    volumes:
+      - ./src/main/resources/db/init:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - database
+    ports:
+      - "8000:8000"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/turvaauk_db
+      SPRING_DATASOURCE_USERNAME: turvaaukUser
+      SPRING_DATASOURCE_PASSWORD: turvaaukPass
+
+volumes:
+  db_data:
