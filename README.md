@@ -24,6 +24,9 @@ In project folder, run command:
 `docker-compose up --build -d`
 
 ### Manually
+Requirements  
+Java JDK 17
+
 Build the project  
 `./gradlew clean build`
 
