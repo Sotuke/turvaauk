@@ -20,12 +20,18 @@ Authenticated user can:
 
 ## Setup and running
 ### With Docker
+Requirements
+- Docker with Docker Compose support. Tested with Docker Engine version 28.0.4 and Docker Compose version v2.34.0
+
 In project folder, run command:  
 `docker-compose up --build -d`
 
+To stop the containers:  
+`docker-compose down`
+
 ### Manually
 Requirements  
-Java JDK 17
+- Java JDK 17
 
 Build the project  
 `./gradlew clean build`
