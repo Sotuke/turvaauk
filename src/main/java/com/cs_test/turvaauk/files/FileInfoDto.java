@@ -8,7 +8,7 @@ public class FileInfoDto {
     private String mimeType;
     private long size;
     private LocalDateTime uploadedAt;
-    private byte[] data;
+    private String path;
 
     public FileInfoDto() {}
 
@@ -19,14 +19,13 @@ public class FileInfoDto {
         this.size = size;
         this.uploadedAt = uploadedAt;
     }
-
-    public FileInfoDto(Long id, String name, String mimeType, long size, LocalDateTime uploadedAt, byte[] data) {
+    public FileInfoDto(Long id, String name, String mimeType, long size, LocalDateTime uploadedAt, String path) {
         this.id = id;
         this.name = name;
         this.mimeType = mimeType;
         this.size = size;
         this.uploadedAt = uploadedAt;
-        this.data = data;
+        this.path = path;
     }
 
     public Long getId() {
@@ -65,11 +64,11 @@ public class FileInfoDto {
         this.uploadedAt = uploadedAt;
     }
 
-    public byte[] getData() {
-        return data;
+    public String getPath() {
+        return path;
     }
 
-    public void setData(byte[] data) {
-        this.data = data;
+    public void setPath(String path) {
+        this.path = path;
     }
 }

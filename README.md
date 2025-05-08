@@ -43,4 +43,4 @@ Run the project (against a H2 in-memory database)
 `./gradlew "-Dspring.profiles.active=dev" bootRun`
 
 The application can be accessed at:  
-`http://localhost:8000`
+`http://turvaauk.localtest.me:8000`

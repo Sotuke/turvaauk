@@ -1,13 +1,15 @@
 package com.cs_test.turvaauk.files;
 
-
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/files")
@@ -43,8 +45,8 @@ public class FileController {
         return fileService.getFiles(orderBy, direction);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFile(@PathVariable Integer id) {
+    @PostMapping("/{id}")
+    public ResponseEntity<Void> deleteFile(@PathVariable Integer id) throws IOException {
         boolean deleted = fileService.deleteFile(id);
         if (!deleted) {
             return ResponseEntity
@@ -57,21 +59,15 @@ public class FileController {
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long id) {
-        FileInfoDto file = fileService.getFileData(id);
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long id) throws MalformedURLException {
+        FileInfoDto info = fileService.getFileData(id);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(
-                ContentDisposition.attachment().filename(file.getName()).build()
-        );
-        headers.setContentType(
-                MediaType.parseMediaType(file.getMimeType())
-        );
+        Resource resource = fileService.loadFileAsResource(id);
 
-        return new ResponseEntity<>(
-                file.getData(),
-                headers,
-                HttpStatus.OK
-        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(info.getMimeType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + info.getName() + "\"")
+                .body(resource);
     }
 }

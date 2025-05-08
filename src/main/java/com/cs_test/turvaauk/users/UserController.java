@@ -70,7 +70,7 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<String> getCurrentUser(
-            @CookieValue(name = "SESSIONID", required = false) String token) {
+            @CookieValue(name = "SESSIONID", required = true) String token) {
 
         if (token == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
